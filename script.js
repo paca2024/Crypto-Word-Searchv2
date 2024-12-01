@@ -33,6 +33,11 @@ function initGame() {
     document.getElementById('userIdForm').classList.add('hidden');
     document.getElementById('gameContent').classList.remove('hidden');
     
+    // Show admin controls only for @Markuk2021
+    if (userId === '@Markuk2021') {
+        document.getElementById('adminControls').classList.remove('hidden');
+    }
+    
     createGrid();
     placeWords();
     displayWords();
@@ -392,13 +397,25 @@ function displayLeaderboard() {
 
 // Admin functions
 function clearLeaderboard() {
-    localStorage.removeItem('leaderboard');
-    displayLeaderboard();
+    const userId = document.getElementById('userId').value.trim();
+    if (userId !== '@Markuk2021') {
+        alert('Only @Markuk2021 has permission to clear the leaderboard');
+        return;
+    }
+    if (confirm('Are you sure you want to clear the leaderboard?')) {
+        localStorage.removeItem('leaderboard');
+        displayLeaderboard();
+    }
 }
 
 function resetHiddenWord() {
-    // This function would typically connect to a backend to reset the hidden word
-    alert('Hidden word reset functionality requires backend implementation');
+    const userId = document.getElementById('userId').value.trim();
+    if (userId !== '@Markuk2021') {
+        alert('Only @Markuk2021 has permission to reset the hidden word');
+        return;
+    }
+    foundHiddenWord = false;
+    alert('Hidden word status has been reset!');
 }
 
 // Event listeners
