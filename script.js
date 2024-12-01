@@ -54,12 +54,25 @@ function createGrid() {
             cell.className = 'grid-cell';
             cell.dataset.row = i;
             cell.dataset.col = j;
+            
+            // Mouse events
             cell.addEventListener('mousedown', startSelection);
             cell.addEventListener('mouseover', continueSelection);
             cell.addEventListener('mouseup', endSelection);
+            
+            // Touch events
+            cell.addEventListener('touchstart', handleTouchStart, { passive: false });
+            cell.addEventListener('touchmove', handleTouchMove, { passive: false });
+            cell.addEventListener('touchend', handleTouchEnd, { passive: true });
+            
             wordGrid.appendChild(cell);
         }
     }
+    
+    // Prevent scrolling when touching the grid
+    wordGrid.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+    }, { passive: false });
 }
 
 // Place words in the grid
@@ -151,6 +164,8 @@ function displayWords() {
 }
 
 // Word selection logic
+let lastTouchedCell = null;
+
 function startSelection(e) {
     if (!isGameActive) return;
     selectedCells = [e.target];
@@ -167,6 +182,60 @@ function continueSelection(e) {
 
 function endSelection() {
     if (!isGameActive) return;
+    checkSelectedWord();
+}
+
+function handleTouchStart(e) {
+    e.preventDefault();
+    if (!isGameActive) return;
+    
+    const touch = e.touches[0];
+    const cell = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    if (cell && cell.classList.contains('grid-cell')) {
+        selectedCells = [cell];
+        cell.classList.add('selected');
+        lastTouchedCell = cell;
+    }
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    if (!isGameActive || !selectedCells.length) return;
+    
+    const touch = e.touches[0];
+    const cell = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    if (cell && cell.classList.contains('grid-cell') && cell !== lastTouchedCell) {
+        // Check if the cell is adjacent to the last cell
+        const lastCell = selectedCells[selectedCells.length - 1];
+        const lastRow = parseInt(lastCell.dataset.row);
+        const lastCol = parseInt(lastCell.dataset.col);
+        const currentRow = parseInt(cell.dataset.row);
+        const currentCol = parseInt(cell.dataset.col);
+        
+        // Calculate the difference in row and column
+        const rowDiff = Math.abs(currentRow - lastRow);
+        const colDiff = Math.abs(currentCol - lastCol);
+        
+        // Only add the cell if it's adjacent (including diagonally)
+        if (rowDiff <= 1 && colDiff <= 1) {
+            if (!selectedCells.includes(cell)) {
+                selectedCells.push(cell);
+                cell.classList.add('selected');
+                lastTouchedCell = cell;
+            }
+        }
+    }
+}
+
+function handleTouchEnd(e) {
+    if (!isGameActive) return;
+    checkSelectedWord();
+    lastTouchedCell = null;
+}
+
+function checkSelectedWord() {
     const word = getSelectedWord();
     checkWord(word);
     selectedCells.forEach(cell => cell.classList.remove('selected'));
