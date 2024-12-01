@@ -1,0 +1,201 @@
+:root {
+    --primary-green: #00ff00;
+    --dark-green: #006400;
+    --black: #000000;
+    --white: #ffffff;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: var(--black);
+    color: var(--primary-green);
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+h1, h2, h3 {
+    color: var(--primary-green);
+    text-align: center;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px 0;
+    padding: 10px;
+    background-color: rgba(0, 100, 0, 0.3);
+    border-radius: 5px;
+}
+
+.game-container {
+    display: flex;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.word-grid {
+    display: grid;
+    grid-template-columns: repeat(15, 30px);
+    gap: 2px;
+    background-color: rgba(0, 100, 0, 0.2);
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.grid-cell {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--black);
+    border: 1px solid var(--dark-green);
+    color: var(--primary-green);
+    cursor: pointer;
+    user-select: none;
+}
+
+.grid-cell.selected {
+    background-color: var(--dark-green);
+}
+
+.grid-cell.found {
+    background-color: var(--primary-green);
+    color: var(--black);
+}
+
+.word-list {
+    flex: 1;
+    padding: 20px;
+    background-color: rgba(0, 100, 0, 0.2);
+    border-radius: 5px;
+}
+
+.word-list ul {
+    list-style: none;
+    padding: 0;
+}
+
+.word-list li {
+    margin: 10px 0;
+    padding: 5px;
+    border-bottom: 1px solid var(--dark-green);
+}
+
+.word-list li.found {
+    text-decoration: line-through;
+    color: var(--dark-green);
+}
+
+button {
+    background-color: var(--dark-green);
+    color: var(--primary-green);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: var(--primary-green);
+    color: var(--black);
+}
+
+.leaderboard {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: rgba(0, 100, 0, 0.2);
+    border-radius: 5px;
+}
+
+.admin-controls {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+input[type="text"] {
+    padding: 8px;
+    background-color: var(--black);
+    border: 1px solid var(--dark-green);
+    color: var(--primary-green);
+    border-radius: 5px;
+}
+
+#leaderboardList {
+    margin: 20px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.leaderboard-entry {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px;
+    border-bottom: 1px solid var(--dark-green);
+}
+
+.hidden {
+    display: none;
+}
+
+.user-form {
+    max-width: 400px;
+    margin: 40px auto;
+    text-align: center;
+    padding: 20px;
+    background-color: rgba(0, 100, 0, 0.2);
+    border-radius: 5px;
+}
+
+.user-form input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    background-color: var(--black);
+    border: 1px solid var(--dark-green);
+    color: var(--primary-green);
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.user-form button {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    color: var(--primary-green);
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+    padding: 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--dark-green);
+}
+
+.leaderboard-table th {
+    background-color: var(--dark-green);
+    color: var(--primary-green);
+}
+
+.leaderboard-table tr:hover {
+    background-color: rgba(0, 100, 0, 0.2);
+}
+
+.found-hidden-word {
+    color: var(--primary-green);
+    font-weight: bold;
+}

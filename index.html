@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Word Search</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Crypto Word Search</h1>
+        
+        <div id="userIdForm" class="user-form">
+            <input type="text" id="userId" placeholder="Enter your user ID" required>
+            <button id="startGame">Start Game</button>
+        </div>
+
+        <div id="gameContent" class="hidden">
+            <div class="game-info">
+                <div class="timer">Time: <span id="timer">00:00</span></div>
+                <button id="endGame">End Game</button>
+            </div>
+
+            <div class="game-container">
+                <div class="word-grid" id="wordGrid"></div>
+                
+                <div class="word-list">
+                    <h3>Words to Find:</h3>
+                    <ul id="wordList"></ul>
+                </div>
+            </div>
+
+            <div class="leaderboard">
+                <h2>Leaderboard</h2>
+                <table id="leaderboardList" class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>User ID</th>
+                            <th>Score</th>
+                            <th>Time</th>
+                            <th>Words Found</th>
+                            <th>Hidden Word</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="admin-controls">
+                    <button id="resetHiddenWord">Reset Hidden Word</button>
+                    <button id="clearLeaderboard">Clear Leaderboard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
