@@ -22,11 +22,22 @@ const gridSize = 15;
 const grid = [];
 let selectedCells = [];
 
+// Cooldown period
+const COOLDOWN_PERIOD = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
 // Initialize the game
 function initGame() {
     const userId = document.getElementById('userId').value.trim();
     if (!userId) {
         alert('Please enter a user ID to start the game');
+        return;
+    }
+    
+    // Check if user can play
+    if (!canUserPlay(userId)) {
+        const lastPlayed = parseInt(localStorage.getItem(`lastPlayed_${userId}`));
+        const nextPlayTime = new Date(lastPlayed + COOLDOWN_PERIOD);
+        alert(`You can play your next game on:\n${nextPlayTime.toLocaleString()}`);
         return;
     }
     
@@ -319,35 +330,77 @@ function calculateScore(wordsFound, foundHidden, timeInSeconds) {
 
 // End game function
 function endGame(completed = false) {
+    if (!isGameActive) return;
+    
     isGameActive = false;
     clearInterval(gameTimer);
-    const finalTime = document.getElementById('timer').textContent;
-    const userId = document.getElementById('userId').value;
-    const wordsFoundCount = foundWords.size;
+    const endTime = Date.now();
+    const timeInSeconds = Math.floor((endTime - startTime) / 1000);
     
-    // Calculate time in seconds
-    const [minutes, seconds] = finalTime.split(':').map(Number);
-    const totalSeconds = minutes * 60 + seconds;
+    // Calculate score
+    const score = calculateScore(foundWords.size, foundHiddenWord, timeInSeconds);
     
-    // Calculate final score
-    const score = calculateScore(wordsFoundCount, foundHiddenWord, totalSeconds);
+    // Get current user
+    const userId = document.getElementById('userId').value.trim();
     
-    // Prepare completion message
-    let message = `Game ended!\n\nScore: ${score} points\nWords Found: ${wordsFoundCount}/${words.length}\nTime: ${finalTime}`;
+    // Update leaderboard
+    updateLeaderboard(userId, timeInSeconds, foundWords.size, foundHiddenWord, score);
     
+    // Set last played time for this user
+    const lastPlayedTime = Date.now();
+    localStorage.setItem(`lastPlayed_${userId}`, lastPlayedTime);
+    
+    // Calculate next available play time
+    const nextPlayTime = new Date(lastPlayedTime + COOLDOWN_PERIOD);
+    const nextPlayTimeString = nextPlayTime.toLocaleString();
+    
+    // Create game over message
+    let message = 'Game Over!\n\n';
+    message += `Score: ${score} points\n`;
+    message += `Words Found: ${foundWords.size}/${words.length}\n`;
+    message += `Time: ${Math.floor(timeInSeconds / 60)}m ${timeInSeconds % 60}s\n`;
     if (foundHiddenWord) {
-        message += `\nHidden Word Bonus: +${HIDDEN_WORD_BONUS} points`;
+        message += 'Hidden Word Found: Yes! (+500 points)\n';
     }
+    message += '\n------------------------\n\n';
+    message += 'Thank you for playing!\n';
+    message += 'Come back tomorrow for a new game.\n\n';
+    message += `Next game available:\n${nextPlayTimeString}`;
     
-    if (completed) {
-        const timeBonus = Object.entries(TIME_BONUSES).find(([threshold]) => totalSeconds <= threshold);
-        if (timeBonus) {
-            message += `\nTime Bonus: +${timeBonus[1]} points`;
-        }
-    }
-    
-    updateLeaderboard(userId, finalTime, wordsFoundCount, foundHiddenWord, score);
+    // Show message
     alert(message);
+    
+    // Disable the game interface
+    const wordGrid = document.getElementById('wordGrid');
+    wordGrid.style.opacity = '0.6';
+    wordGrid.style.pointerEvents = 'none';
+    
+    // Update UI elements
+    document.getElementById('endGame').disabled = true;
+    document.getElementById('endGame').textContent = 'Game Ended';
+    
+    // Add "Come back tomorrow" message to the game container
+    const gameContainer = document.querySelector('.game-container');
+    const nextGameMessage = document.createElement('div');
+    nextGameMessage.className = 'next-game-message';
+    nextGameMessage.innerHTML = `
+        <h3>Come back tomorrow for a new game!</h3>
+        <p>Next game available:</p>
+        <p>${nextPlayTimeString}</p>
+    `;
+    gameContainer.appendChild(nextGameMessage);
+    
+    // Update leaderboard display
+    displayLeaderboard();
+}
+
+// Check if user can play
+function canUserPlay(userId) {
+    const lastPlayed = localStorage.getItem(`lastPlayed_${userId}`);
+    if (!lastPlayed) return true;
+    
+    const timeSinceLastPlay = Date.now() - parseInt(lastPlayed);
+    return timeSinceLastPlay >= COOLDOWN_PERIOD;
 }
 
 // Update leaderboard functions
@@ -387,7 +440,7 @@ function displayLeaderboard() {
             <td>${index + 1}</td>
             <td>${entry.userId}</td>
             <td>${entry.score}</td>
-            <td>${entry.time}</td>
+            <td>${Math.floor(entry.time / 60)}m ${entry.time % 60}s</td>
             <td>${entry.wordsFound}/${words.length}</td>
             <td class="${entry.foundHidden ? 'found-hidden-word' : ''}">${entry.foundHidden ? 'Found! (+500)' : 'Not Found'}</td>
         `;
