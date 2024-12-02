@@ -62,104 +62,118 @@ function initGame() {
 function createGrid() {
     const wordGrid = document.getElementById('wordGrid');
     wordGrid.innerHTML = '';
-    
-    // Create grid cells
+
+    // Initialize empty grid
     for (let i = 0; i < gridSize; i++) {
         grid[i] = [];
         for (let j = 0; j < gridSize; j++) {
+            grid[i][j] = '';
             const cell = document.createElement('div');
             cell.className = 'grid-cell';
             cell.dataset.row = i;
             cell.dataset.col = j;
+            
+            // Mouse events
+            cell.addEventListener('mousedown', startSelection);
+            cell.addEventListener('mouseover', continueSelection);
+            cell.addEventListener('mouseup', endSelection);
+            
+            // Touch events
+            cell.addEventListener('touchstart', handleTouchStart, { passive: false });
+            cell.addEventListener('touchmove', handleTouchMove, { passive: false });
+            cell.addEventListener('touchend', handleTouchEnd, { passive: true });
+            
             wordGrid.appendChild(cell);
-            grid[i][j] = cell;
+        }
+    }
+    
+    // Prevent scrolling when touching the grid
+    wordGrid.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+    }, { passive: false });
+}
+
+// Place words in the grid
+function placeWords() {
+    // Place each word
+    for (const word of words) {
+        let placed = false;
+        let attempts = 0;
+        const maxAttempts = 100;
+
+        while (!placed && attempts < maxAttempts) {
+            const direction = Math.floor(Math.random() * 8); // 0-7 for 8 directions
+            const row = Math.floor(Math.random() * gridSize);
+            const col = Math.floor(Math.random() * gridSize);
+
+            if (canPlaceWord(word, row, col, direction)) {
+                placeWord(word, row, col, direction);
+                placed = true;
+            }
+            attempts++;
         }
     }
 
-    // Add event listeners to the grid
-    wordGrid.addEventListener('mousedown', function(e) {
-        e.preventDefault();
-        const cell = e.target.closest('.grid-cell');
-        if (cell) {
-            isSelecting = true;
-            selectedCells = [cell];
-            cell.classList.add('selected');
+    // Fill remaining cells with random letters
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+            if (grid[i][j] === '') {
+                grid[i][j] = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            }
+            document.querySelector(`[data-row="${i}"][data-col="${j}"]`).textContent = grid[i][j];
         }
-    });
+    }
+}
 
-    wordGrid.addEventListener('mouseover', function(e) {
-        if (!isSelecting) return;
-        
-        const cell = e.target.closest('.grid-cell');
-        if (!cell || selectedCells.includes(cell)) return;
+// Word selection logic
+let selectedCells = [];
+let isSelecting = false;
 
+function startSelection(e) {
+    if (!isGameActive) return;
+    isSelecting = true;
+    selectedCells = [e.target];
+    e.target.classList.add('selected');
+}
+
+function continueSelection(e) {
+    if (!isGameActive || !isSelecting) return;
+    const cell = e.target;
+    
+    if (cell && cell.classList.contains('grid-cell') && !selectedCells.includes(cell)) {
         const lastCell = selectedCells[selectedCells.length - 1];
         const lastRow = parseInt(lastCell.dataset.row);
         const lastCol = parseInt(lastCell.dataset.col);
         const currentRow = parseInt(cell.dataset.row);
         const currentCol = parseInt(cell.dataset.col);
-
+        
         const rowDiff = Math.abs(currentRow - lastRow);
         const colDiff = Math.abs(currentCol - lastCol);
-
+        
         if (rowDiff <= 1 && colDiff <= 1) {
             selectedCells.push(cell);
             cell.classList.add('selected');
         }
-    });
-
-    document.addEventListener('mouseup', function() {
-        if (isSelecting) {
-            isSelecting = false;
-            const word = selectedCells.map(cell => cell.textContent).join('');
-            const reverseWord = word.split('').reverse().join('');
-            
-            if (words.includes(word) && !foundWords.has(word)) {
-                foundWords.add(word);
-                markWordAsFound(word);
-                checkGameCompletion();
-            } else if (word === hiddenWord || reverseWord === hiddenWord) {
-                foundHiddenWord = true;
-                alert('Congratulations! You found the hidden word LEE!');
-            }
-            
-            selectedCells.forEach(cell => cell.classList.remove('selected'));
-            selectedCells = [];
-        }
-    });
-
-    // Fill grid with random letters
-    fillGridWithRandomLetters();
-}
-
-// Fill grid with random letters
-function fillGridWithRandomLetters() {
-    for (let i = 0; i < gridSize; i++) {
-        for (let j = 0; j < gridSize; j++) {
-            if (grid[i][j].textContent === '') {
-                grid[i][j].textContent = String.fromCharCode(65 + Math.floor(Math.random() * 26));
-            }
-        }
     }
 }
 
-// Place words in the grid
-function placeWords() {
-    const allWords = [...words, hiddenWord];
+function endSelection() {
+    if (!isGameActive) return;
+    isSelecting = false;
+    const word = selectedCells.map(cell => cell.textContent).join('');
+    const reverseWord = word.split('').reverse().join('');
     
-    for (const word of allWords) {
-        let placed = false;
-        while (!placed) {
-            const direction = Math.floor(Math.random() * 8);
-            const row = Math.floor(Math.random() * gridSize);
-            const col = Math.floor(Math.random() * gridSize);
-            
-            if (canPlaceWord(word, row, col, direction)) {
-                placeWord(word, row, col, direction);
-                placed = true;
-            }
-        }
+    if (words.includes(word) && !foundWords.has(word)) {
+        foundWords.add(word);
+        markWordAsFound(word);
+        checkGameCompletion();
+    } else if (word === hiddenWord || reverseWord === hiddenWord) {
+        foundHiddenWord = true;
+        alert('Congratulations! You found the hidden word LEE!');
     }
+    
+    selectedCells.forEach(cell => cell.classList.remove('selected'));
+    selectedCells = [];
 }
 
 // Check if a word can be placed at the given position and direction
@@ -185,7 +199,7 @@ function canPlaceWord(word, row, col, direction) {
             return false;
         }
         
-        if (grid[newRow][newCol].textContent !== '' && grid[newRow][newCol].textContent !== word[i]) {
+        if (grid[newRow][newCol] !== '' && grid[newRow][newCol] !== word[i]) {
             return false;
         }
     }
@@ -205,7 +219,7 @@ function placeWord(word, row, col, direction) {
     for (let i = 0; i < word.length; i++) {
         const newRow = row + (dRow * i);
         const newCol = col + (dCol * i);
-        grid[newRow][newCol].textContent = word[i];
+        grid[newRow][newCol] = word[i];
     }
 }
 
@@ -450,3 +464,51 @@ function markWordAsFound(word) {
 window.addEventListener('load', () => {
     displayLeaderboard();
 });
+
+// Touch event handlers
+function handleTouchStart(e) {
+    if (!isGameActive) return;
+    isSelecting = true;
+    selectedCells = [e.target];
+    e.target.classList.add('selected');
+}
+
+function handleTouchMove(e) {
+    if (!isGameActive || !isSelecting) return;
+    const cell = e.target;
+    
+    if (cell && cell.classList.contains('grid-cell') && !selectedCells.includes(cell)) {
+        const lastCell = selectedCells[selectedCells.length - 1];
+        const lastRow = parseInt(lastCell.dataset.row);
+        const lastCol = parseInt(lastCell.dataset.col);
+        const currentRow = parseInt(cell.dataset.row);
+        const currentCol = parseInt(cell.dataset.col);
+        
+        const rowDiff = Math.abs(currentRow - lastRow);
+        const colDiff = Math.abs(currentCol - lastCol);
+        
+        if (rowDiff <= 1 && colDiff <= 1) {
+            selectedCells.push(cell);
+            cell.classList.add('selected');
+        }
+    }
+}
+
+function handleTouchEnd() {
+    if (!isGameActive) return;
+    isSelecting = false;
+    const word = selectedCells.map(cell => cell.textContent).join('');
+    const reverseWord = word.split('').reverse().join('');
+    
+    if (words.includes(word) && !foundWords.has(word)) {
+        foundWords.add(word);
+        markWordAsFound(word);
+        checkGameCompletion();
+    } else if (word === hiddenWord || reverseWord === hiddenWord) {
+        foundHiddenWord = true;
+        alert('Congratulations! You found the hidden word LEE!');
+    }
+    
+    selectedCells.forEach(cell => cell.classList.remove('selected'));
+    selectedCells = [];
+}
