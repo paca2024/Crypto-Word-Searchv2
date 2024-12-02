@@ -6,6 +6,7 @@ let foundHiddenWord = false;
 let isGameActive = false;
 let startTime;
 let gameTimer;
+let gameStartTime;
 
 // Game variables
 const gridSize = 15;
@@ -66,6 +67,7 @@ function initGame() {
     
     // Start the timer
     startTimer();
+    gameStartTime = new Date();
 }
 
 // Create the grid
@@ -316,118 +318,55 @@ function updateTimer() {
 // Game completion check
 function checkGameCompletion() {
     if (foundWords.size === words.length) {
-        endGame(true);
+        endGame();
     }
 }
 
 // End game function
-function endGame(completed = false) {
+function endGame() {
     if (!isGameActive) return;
-    
     isGameActive = false;
+    saveGameStats();
+    
+    // Disable grid interaction
+    const grid = document.getElementById('grid');
+    grid.style.pointerEvents = 'none';
+    
+    // Update UI
+    document.getElementById('endGameBtn').disabled = true;
+    document.getElementById('timer').style.color = 'red';
     clearInterval(gameTimer);
-    const endTime = Date.now();
-    const timeInSeconds = Math.floor((endTime - startTime) / 1000);
-    
-    // Calculate score
-    const score = calculateScore(foundWords.size, foundHiddenWord, timeInSeconds);
-    
-    // Get current user
-    const userId = document.getElementById('userId').value.trim();
-    
-    // Generate verification hash
-    const verificationHash = generateVerificationHash(userId, score, foundWords.size, timeInSeconds, foundHiddenWord);
-    
-    // Update leaderboard with verification hash
-    updateLeaderboard(userId, timeInSeconds, foundWords.size, foundHiddenWord, score, verificationHash);
-    
-    // Set last played time for this user
-    const lastPlayedTime = Date.now();
-    localStorage.setItem(`lastPlayed_${userId}`, lastPlayedTime);
-    
-    // Calculate next available play time
-    const nextPlayTime = new Date(lastPlayedTime + COOLDOWN_PERIOD);
-    const nextPlayTimeString = nextPlayTime.toLocaleString();
-    
-    // Create game over message
-    let message = 'Game Over!\n\n';
-    message += `Score: ${score} points\n`;
-    message += `Words Found: ${foundWords.size}/${words.length}\n`;
-    message += `Time: ${Math.floor(timeInSeconds / 60)}m ${timeInSeconds % 60}s\n`;
-    if (foundHiddenWord) {
-        message += 'Hidden Word Found: Yes! (+500 points)\n';
-    }
-    message += '\n------------------------\n';
-    message += `Verification Hash: ${verificationHash}\n`;
-    message += '------------------------\n\n';
-    message += 'Thank you for playing!\n';
-    message += 'Come back tomorrow for a new game.\n\n';
-    message += `Next game available:\n${nextPlayTimeString}`;
-    
-    // Show message
-    alert(message);
-    
-    // Disable the game interface
-    const wordGrid = document.getElementById('wordGrid');
-    wordGrid.style.opacity = '0.6';
-    wordGrid.style.pointerEvents = 'none';
-    
-    // Update UI elements
-    document.getElementById('endGame').disabled = true;
-    document.getElementById('endGame').textContent = 'Game Ended';
-    
-    // Add "Come back tomorrow" message to the game container
-    const gameContainer = document.querySelector('.game-container');
-    const nextGameMessage = document.createElement('div');
-    nextGameMessage.className = 'next-game-message';
-    nextGameMessage.innerHTML = `
-        <h3>Come back tomorrow for a new game!</h3>
-        <p>Next game available:</p>
-        <p>${nextPlayTimeString}</p>
-        <div class="verification">
-            <p>Verification Hash:</p>
-            <code>${verificationHash}</code>
-        </div>
-    `;
-    gameContainer.appendChild(nextGameMessage);
-    
-    // Update leaderboard display
-    displayLeaderboard();
 }
 
-// Calculate score based on words found, hidden word, and time
-function calculateScore(wordsFound, foundHidden, timeInSeconds) {
-    let score = wordsFound * POINTS_PER_WORD;
-    
-    // Add bonus for hidden word
-    if (foundHidden) {
-        score += HIDDEN_WORD_BONUS;
-    }
-    
-    // Add time bonus if all words found
-    if (wordsFound === words.length) {
-        for (const [threshold, bonus] of Object.entries(TIME_BONUSES)) {
-            if (timeInSeconds <= threshold) {
-                score += bonus;
-                break;
-            }
-        }
-    }
-    
-    return score;
+// Function to save game stats
+function saveGameStats() {
+    const currentTime = new Date();
+    const gameStats = {
+        userId: localStorage.getItem('userId') || 'anonymous',
+        score: foundWords.size,
+        timeTaken: Math.floor((currentTime - gameStartTime) / 1000), // Time in seconds
+        hiddenWordFound: foundHiddenWord,
+        timestamp: currentTime.toISOString(),
+        foundWords: Array.from(foundWords)
+    };
+
+    // Get existing stats or initialize empty array
+    let gameHistory = JSON.parse(localStorage.getItem('gameHistory') || '[]');
+    gameHistory.push(gameStats);
+    localStorage.setItem('gameHistory', JSON.stringify(gameHistory));
+
+    // Display game summary
+    alert(`Game Summary:\nScore: ${gameStats.score} words found\nTime: ${gameStats.timeTaken} seconds\nHidden Word Found: ${gameStats.hiddenWordFound}`);
 }
 
-// Add this function to generate a verification hash
-function generateVerificationHash(userId, score, wordsFound, timeInSeconds, foundHidden) {
-    const gameData = `${userId}-${score}-${wordsFound}-${timeInSeconds}-${foundHidden}-${hiddenWord}`;
-    let hash = 0;
-    for (let i = 0; i < gameData.length; i++) {
-        const char = gameData.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
-    }
-    // Convert to a more readable format (base36) and ensure it's always positive
-    return Math.abs(hash).toString(36).toUpperCase();
+// Get game history
+function getGameHistory() {
+    return JSON.parse(localStorage.getItem('gameHistory') || '[]');
+}
+
+// Clear game history
+function clearGameHistory() {
+    localStorage.removeItem('gameHistory');
 }
 
 // Check if user can play
@@ -439,82 +378,10 @@ function canUserPlay(userId) {
     return timeSinceLastPlay >= COOLDOWN_PERIOD;
 }
 
-// Update leaderboard functions
-function updateLeaderboard(userId, time, wordsFound, foundHidden, score, verificationHash) {
-    let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
-    
-    // Add new entry
-    leaderboard.push({
-        userId,
-        time,
-        wordsFound,
-        foundHidden,
-        score,
-        verificationHash,
-        date: new Date().toISOString()
-    });
-    
-    // Sort by score (highest first) and then by time (lowest first)
-    leaderboard.sort((a, b) => {
-        if (b.score !== a.score) {
-            return b.score - a.score;
-        }
-        return a.time - b.time;
-    });
-    
-    // Store leaderboard
-    localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
-    displayLeaderboard();
-}
-
-function displayLeaderboard() {
-    const leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
-    const tbody = document.querySelector('#leaderboardTable tbody');
-    tbody.innerHTML = '';
-    
-    leaderboard.forEach((entry, index) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${entry.userId}</td>
-            <td>${entry.score}</td>
-            <td>${Math.floor(entry.time / 60)}m ${entry.time % 60}s</td>
-            <td>${entry.wordsFound}/${words.length}</td>
-            <td class="${entry.foundHidden ? 'found-hidden-word' : ''}">${entry.foundHidden ? 'Found! (+500)' : 'Not Found'}</td>
-            <td><code class="verification-hash">${entry.verificationHash || 'N/A'}</code></td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-// Admin functions
-function clearLeaderboard() {
-    const userId = document.getElementById('userId').value.trim();
-    if (userId !== '@Markuk2021') {
-        alert('Only @Markuk2021 has permission to clear the leaderboard');
-        return;
-    }
-    if (confirm('Are you sure you want to clear the leaderboard?')) {
-        localStorage.removeItem('leaderboard');
-        displayLeaderboard();
-    }
-}
-
-function resetHiddenWord() {
-    const userId = document.getElementById('userId').value.trim();
-    if (userId !== '@Markuk2021') {
-        alert('Only @Markuk2021 has permission to reset the hidden word');
-        return;
-    }
-    foundHiddenWord = false;
-    alert('Hidden word status has been reset!');
-}
-
 // Initialize event listeners
 document.getElementById('startGame').addEventListener('click', initGame);
-document.getElementById('endGame').addEventListener('click', () => endGame(false));
+document.getElementById('endGameBtn').addEventListener('click', () => endGame());
 
 // Initialize leaderboard on page load
 window.addEventListener('load', () => {
-    displayLeaderboard();
 });
