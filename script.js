@@ -200,17 +200,21 @@ function continueSelection(e) {
         const rowDiff = Math.abs(currentRow - lastRow);
         const colDiff = Math.abs(currentCol - lastCol);
         
-        // Only add the cell if it's adjacent (including diagonally) and in line with selection
+        // Only add the cell if it's adjacent (including diagonally)
         if (rowDiff <= 1 && colDiff <= 1) {
             if (selectedCells.length >= 2) {
-                const secondLastCell = selectedCells[selectedCells.length - 2];
-                const directionRow = lastRow - parseInt(secondLastCell.dataset.row);
-                const directionCol = lastCol - parseInt(secondLastCell.dataset.col);
-                const newDirectionRow = currentRow - lastRow;
-                const newDirectionCol = currentCol - lastCol;
+                const firstCell = selectedCells[0];
+                const firstRow = parseInt(firstCell.dataset.row);
+                const firstCol = parseInt(firstCell.dataset.col);
                 
-                // Check if the new cell maintains the same direction
-                if (directionRow === newDirectionRow && directionCol === newDirectionCol) {
+                // Calculate overall direction from first to current cell
+                const totalRowDiff = currentRow - firstRow;
+                const totalColDiff = currentCol - firstCol;
+                
+                // Allow selection if it's roughly in the same direction
+                // This makes diagonal selection more forgiving
+                if (Math.abs(totalRowDiff) <= Math.abs(totalColDiff) + 1 && 
+                    Math.abs(totalColDiff) <= Math.abs(totalRowDiff) + 1) {
                     selectedCells.push(cell);
                     cell.classList.add('selected');
                 }
