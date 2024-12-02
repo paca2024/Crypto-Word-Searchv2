@@ -45,8 +45,8 @@ function initGame() {
     
     // Clear and create grid
     createGrid();
-    placeWords();
     placeHiddenWord();
+    placeWords();
     
     // Update UI
     const endGameBtn = document.getElementById('endGameBtn');
@@ -76,34 +76,48 @@ function initGame() {
 
 // Create the grid
 function createGrid() {
-    const wordGrid = document.getElementById('wordGrid');
-    wordGrid.innerHTML = '';
-
-    // Initialize empty grid
+    const gridContainer = document.getElementById('wordGrid');
+    gridContainer.innerHTML = '';
+    
+    // Initialize empty grid array
     for (let i = 0; i < gridSize; i++) {
-        grid[i] = [];
+        grid[i] = new Array(gridSize).fill('');
+    }
+
+    // Create grid cells
+    for (let i = 0; i < gridSize; i++) {
         for (let j = 0; j < gridSize; j++) {
-            grid[i][j] = '';
             const cell = document.createElement('div');
             cell.className = 'grid-cell';
             cell.dataset.row = i;
             cell.dataset.col = j;
-            wordGrid.appendChild(cell);
+            gridContainer.appendChild(cell);
         }
     }
 
     // Add event listeners
-    wordGrid.addEventListener('mousedown', startSelection);
-    wordGrid.addEventListener('mouseover', continueSelection);
+    gridContainer.addEventListener('mousedown', startSelection);
+    gridContainer.addEventListener('mouseover', continueSelection);
     document.addEventListener('mouseup', endSelection);
     
     // Add touch events
-    wordGrid.addEventListener('touchstart', handleTouchStart, { passive: false });
-    wordGrid.addEventListener('touchmove', handleTouchMove, { passive: false });
-    wordGrid.addEventListener('touchend', handleTouchEnd, { passive: true });
+    gridContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+    gridContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+    gridContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
     
     // Prevent scrolling on touch
-    wordGrid.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+    gridContainer.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+}
+
+function updateGridDisplay() {
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+            const cell = document.querySelector(`.grid-cell[data-row="${i}"][data-col="${j}"]`);
+            if (cell) {
+                cell.textContent = grid[i][j];
+            }
+        }
+    }
 }
 
 // Place words in the grid
@@ -143,35 +157,52 @@ function placeWords() {
 
 // Place hidden word in the grid
 function placeHiddenWord() {
+    // Place hidden word first before other words
     let placed = false;
-    const maxAttempts = 100; // Increased attempts
-    let attempts = 0;
-    
-    while (!placed && attempts < maxAttempts) {
-        const row = Math.floor(Math.random() * gridSize);
-        const col = Math.floor(Math.random() * gridSize);
-        const directions = [
-            [0, 1],   // right
-            [1, 0],   // down
-            [1, 1],   // diagonal right-down
-            [-1, 1],  // diagonal right-up
-            [0, -1],  // left
-            [-1, 0],  // up
-            [-1, -1], // diagonal left-up
-            [1, -1]   // diagonal left-down
-        ];
-        const direction = directions[Math.floor(Math.random() * directions.length)];
-        
-        if (canPlaceWordAt(hiddenWord, row, col, direction[0], direction[1])) {
-            placeWordAt(hiddenWord, row, col, direction[0], direction[1]);
-            console.log(`Hidden word LEE placed at row: ${row}, col: ${col}, direction: [${direction}]`);
-            placed = true;
+    const directions = [
+        [0, 1],   // right
+        [1, 0],   // down
+        [1, 1],   // diagonal right-down
+        [-1, 1],  // diagonal right-up
+        [0, -1],  // left
+        [-1, 0],  // up
+        [-1, -1], // diagonal left-up
+        [1, -1]   // diagonal left-down
+    ];
+
+    // Try each position systematically
+    for (let row = 0; row < gridSize && !placed; row++) {
+        for (let col = 0; col < gridSize && !placed; col++) {
+            // Try each direction
+            for (let dir of directions) {
+                if (canPlaceWordAt(hiddenWord, row, col, dir[0], dir[1])) {
+                    placeWordAt(hiddenWord, row, col, dir[0], dir[1]);
+                    console.log(`Hidden word LEE placed at row: ${row}, col: ${col}, direction: [${dir}]`);
+                    placed = true;
+                    break;
+                }
+            }
         }
-        attempts++;
     }
-    
+
     if (!placed) {
-        console.warn('Could not place hidden word after maximum attempts');
+        console.error('Failed to place hidden word - trying emergency placement');
+        // Emergency placement in first available spot
+        for (let row = 0; row < gridSize - hiddenWord.length; row++) {
+            if (placed) break;
+            for (let col = 0; col < gridSize - hiddenWord.length; col++) {
+                if (canPlaceWordAt(hiddenWord, row, col, 0, 1)) { // Try horizontal
+                    placeWordAt(hiddenWord, row, col, 0, 1);
+                    console.log(`Emergency: Hidden word LEE placed horizontally at row: ${row}, col: ${col}`);
+                    placed = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!placed) {
+        console.error('Critical error: Could not place hidden word even in emergency mode');
     }
 }
 
@@ -215,13 +246,14 @@ function canPlaceWordAt(word, row, col, dRow, dCol) {
         const newRow = row + (dRow * i);
         const newCol = col + (dCol * i);
         
-        if (newRow < 0 || newRow >= gridSize || newCol < 0 || newCol >= gridSize) {
+        if (newRow < 0 || newRow >= gridSize || 
+            newCol < 0 || newCol >= gridSize) {
             return false;
         }
         
         // Check if cell is empty or matches the letter we want to place
-        const currentCell = grid[newRow][newCol];
-        if (currentCell !== '' && currentCell !== word[i]) {
+        if (grid[newRow][newCol] !== '' && 
+            grid[newRow][newCol] !== word[i]) {
             return false;
         }
     }
@@ -264,6 +296,7 @@ function placeWordAt(word, row, col, dRow, dCol) {
             cell.textContent = word[i];
         }
     }
+    updateGridDisplay();
 }
 
 // Word selection functions
@@ -456,22 +489,10 @@ function checkGameCompletion() {
 function endGame() {
     if (!isGameActive) return;
     isGameActive = false;
-    saveGameStats();
     
-    // Disable grid interaction
-    const grid = document.getElementById('grid');
-    grid.style.pointerEvents = 'none';
-    
-    // Update UI
-    document.getElementById('endGameBtn').disabled = true;
-    document.getElementById('timer').style.color = 'red';
-    clearInterval(gameTimer);
-}
-
-// Function to save game stats
-function saveGameStats() {
+    // Calculate final statistics
     const endTime = new Date();
-    const timeTaken = Math.floor((endTime - gameStartTime) / 1000); // Time in seconds
+    const timeTaken = Math.floor((endTime - gameStartTime) / 1000); // in seconds
     const score = calculateScore(foundWords.size, foundHiddenWord, timeTaken);
     
     // Save game stats
@@ -485,13 +506,37 @@ function saveGameStats() {
         timestamp: endTime.toISOString()
     };
     
-    saveGameStats(gameStats);
-    
     // Set cooldown
     localStorage.setItem('lastPlayTime', Date.now().toString());
     
     // Show game summary
-    showGameSummary(gameStats);
+    const nextPlayTime = new Date(Date.now() + COOLDOWN_MS);
+    let message = `Game Over!\n\n`;
+    message += `Score: ${score}\n`;
+    message += `Words Found: ${gameStats.wordsFound.length}/${words.length}\n`;
+    message += `Time: ${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s\n`;
+    message += `Hidden Word (LEE): ${foundHiddenWord ? 'Found! (+500 points)' : 'Not Found'}\n\n`;
+    message += `Come back at ${nextPlayTime.toLocaleString()} for your next game!\n`;
+    message += `(${COOLDOWN_HOURS} hour cooldown)`;
+    
+    alert(message);
+    
+    // Disable game interface
+    const grid = document.getElementById('grid');
+    if (grid) grid.style.pointerEvents = 'none';
+    
+    const endGameBtn = document.getElementById('endGameBtn');
+    if (endGameBtn) endGameBtn.disabled = true;
+    
+    const timer = document.getElementById('timer');
+    if (timer) timer.style.color = 'red';
+    
+    clearInterval(gameTimer);
+    
+    // Save to game history
+    let gameHistory = JSON.parse(localStorage.getItem('gameHistory') || '[]');
+    gameHistory.push(gameStats);
+    localStorage.setItem('gameHistory', JSON.stringify(gameHistory));
 }
 
 // Calculate score
@@ -518,26 +563,18 @@ function getUserId() {
     return userId;
 }
 
-// Show game summary
-function showGameSummary(stats) {
-    const nextPlayTime = new Date(Date.now() + COOLDOWN_MS);
-    let message = `Game Over!\n\n`;
-    message += `Score: ${stats.score}\n`;
-    message += `Words Found: ${stats.wordsFound.length}/${stats.totalWords}\n`;
-    message += `Time: ${Math.floor(stats.timeTaken / 60)}m ${stats.timeTaken % 60}s\n`;
-    message += `Hidden Word (LEE): ${stats.hiddenWordFound ? 'Found! (+500 points)' : 'Not Found'}\n\n`;
-    message += `Come back at ${nextPlayTime.toLocaleString()} for your next game!\n`;
-    message += `(${COOLDOWN_HOURS} hour cooldown)`;
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    const startButton = document.getElementById('startGame');
+    const endButton = document.getElementById('endGameBtn');
     
-    alert(message);
-}
-
-// Save game stats
-function saveGameStats(stats) {
-    let gameHistory = JSON.parse(localStorage.getItem('gameHistory') || '[]');
-    gameHistory.push(stats);
-    localStorage.setItem('gameHistory', JSON.stringify(gameHistory));
-}
+    if (startButton) {
+        startButton.addEventListener('click', initGame);
+    }
+    if (endButton) {
+        endButton.addEventListener('click', endGame);
+    }
+});
 
 // Check if user can play
 function canUserPlay() {
@@ -560,10 +597,9 @@ function showCooldownMessage() {
     alert(`Please come back in ${hours} hours and ${minutes} minutes for the next game!`);
 }
 
-// Initialize event listeners
-document.getElementById('startGame').addEventListener('click', initGame);
-document.getElementById('endGameBtn').addEventListener('click', () => endGame());
-
-// Initialize leaderboard on page load
-window.addEventListener('load', () => {
-});
+// Save game stats
+function saveGameStats(stats) {
+    let gameHistory = JSON.parse(localStorage.getItem('gameHistory') || '[]');
+    gameHistory.push(stats);
+    localStorage.setItem('gameHistory', JSON.stringify(gameHistory));
+}
