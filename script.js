@@ -205,19 +205,47 @@ function startSelection(e) {
 
 function continueSelection(e) {
     if (!isGameActive || !isSelecting) return;
-    const cell = e.target.closest('.grid-cell');
-    if (!cell || selectedCells.includes(cell)) return;
     
+    const cell = e.target.closest('.grid-cell');
+    if (!cell) return;
+
     const lastCell = selectedCells[selectedCells.length - 1];
+    if (!lastCell || cell === lastCell) return;
+
+    // Get coordinates
     const lastRow = parseInt(lastCell.dataset.row);
     const lastCol = parseInt(lastCell.dataset.col);
     const currentRow = parseInt(cell.dataset.row);
     const currentCol = parseInt(cell.dataset.col);
-    
+
+    // Calculate direction
     const rowDiff = Math.abs(currentRow - lastRow);
     const colDiff = Math.abs(currentCol - lastCol);
-    
-    if (rowDiff <= 1 && colDiff <= 1) {
+
+    // Check if movement is valid (horizontal, vertical, or diagonal)
+    const isValidMove = (
+        (rowDiff === 0 && colDiff === 1) || // horizontal
+        (rowDiff === 1 && colDiff === 0) || // vertical
+        (rowDiff === 1 && colDiff === 1)    // diagonal
+    );
+
+    if (!isValidMove) return;
+
+    // Add cells in between for diagonal movement
+    if (rowDiff === 1 && colDiff === 1) {
+        const rowStep = (currentRow - lastRow) / Math.abs(currentRow - lastRow);
+        const colStep = (currentCol - lastCol) / Math.abs(currentCol - lastCol);
+        const intermediateCell = document.querySelector(
+            `.grid-cell[data-row="${lastRow + rowStep}"][data-col="${lastCol + colStep}"]`
+        );
+        if (intermediateCell && !selectedCells.includes(intermediateCell)) {
+            selectedCells.push(intermediateCell);
+            intermediateCell.classList.add('selected');
+        }
+    }
+
+    // Add the current cell
+    if (!selectedCells.includes(cell)) {
         selectedCells.push(cell);
         cell.classList.add('selected');
     }
@@ -269,21 +297,48 @@ function handleTouchMove(e) {
     if (!isGameActive || !isSelecting) return;
     
     const touch = e.touches[0];
-    const cell = document.elementFromPoint(touch.clientX, touch.clientY);
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
     
-    if (cell && cell.classList.contains('grid-cell') && !selectedCells.includes(cell)) {
+    if (element && element.classList.contains('grid-cell')) {
         const lastCell = selectedCells[selectedCells.length - 1];
+        if (!lastCell || element === lastCell) return;
+
+        // Get coordinates
         const lastRow = parseInt(lastCell.dataset.row);
         const lastCol = parseInt(lastCell.dataset.col);
-        const currentRow = parseInt(cell.dataset.row);
-        const currentCol = parseInt(cell.dataset.col);
-        
+        const currentRow = parseInt(element.dataset.row);
+        const currentCol = parseInt(element.dataset.col);
+
+        // Calculate direction
         const rowDiff = Math.abs(currentRow - lastRow);
         const colDiff = Math.abs(currentCol - lastCol);
-        
-        if (rowDiff <= 1 && colDiff <= 1) {
-            selectedCells.push(cell);
-            cell.classList.add('selected');
+
+        // Check if movement is valid (horizontal, vertical, or diagonal)
+        const isValidMove = (
+            (rowDiff === 0 && colDiff === 1) || // horizontal
+            (rowDiff === 1 && colDiff === 0) || // vertical
+            (rowDiff === 1 && colDiff === 1)    // diagonal
+        );
+
+        if (!isValidMove) return;
+
+        // Add cells in between for diagonal movement
+        if (rowDiff === 1 && colDiff === 1) {
+            const rowStep = (currentRow - lastRow) / Math.abs(currentRow - lastRow);
+            const colStep = (currentCol - lastCol) / Math.abs(currentCol - lastCol);
+            const intermediateCell = document.querySelector(
+                `.grid-cell[data-row="${lastRow + rowStep}"][data-col="${lastCol + colStep}"]`
+            );
+            if (intermediateCell && !selectedCells.includes(intermediateCell)) {
+                selectedCells.push(intermediateCell);
+                intermediateCell.classList.add('selected');
+            }
+        }
+
+        // Add the current cell
+        if (!selectedCells.includes(element)) {
+            selectedCells.push(element);
+            element.classList.add('selected');
         }
     }
 }
