@@ -49,8 +49,16 @@ function initGame() {
     placeHiddenWord();
     
     // Update UI
-    document.getElementById('endGameBtn').disabled = false;
-    document.getElementById('timer').style.color = 'black';
+    const endGameBtn = document.getElementById('endGameBtn');
+    const timer = document.getElementById('timer');
+    const gameContent = document.getElementById('gameContent');
+    const userIdForm = document.getElementById('userIdForm');
+    
+    if (endGameBtn) endGameBtn.disabled = false;
+    if (timer) timer.style.color = 'black';
+    if (gameContent) gameContent.classList.remove('hidden');
+    if (userIdForm) userIdForm.classList.add('hidden');
+    
     startTimer();
 }
 
