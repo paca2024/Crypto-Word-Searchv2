@@ -21,6 +21,8 @@ const TIME_BONUSES = {
 const gridSize = 15;
 const grid = [];
 let selectedCells = [];
+let isSelecting = false;
+let lastTouchedCell = null;
 
 // Cooldown period
 const COOLDOWN_PERIOD = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -70,11 +72,6 @@ function createGrid() {
             cell.className = 'grid-cell';
             cell.dataset.row = i;
             cell.dataset.col = j;
-            
-            // Mouse events
-            cell.addEventListener('mousedown', startSelection);
-            cell.addEventListener('mouseover', continueSelection);
-            cell.addEventListener('mouseup', endSelection);
             
             // Touch events
             cell.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -180,24 +177,54 @@ function displayWords() {
 }
 
 // Word selection logic
-let lastTouchedCell = null;
-
 function startSelection(e) {
     if (!isGameActive) return;
+    isSelecting = true;
     selectedCells = [e.target];
     e.target.classList.add('selected');
 }
 
 function continueSelection(e) {
-    if (!isGameActive || !selectedCells.length) return;
-    if (!selectedCells.includes(e.target)) {
-        selectedCells.push(e.target);
-        e.target.classList.add('selected');
+    if (!isGameActive || !isSelecting) return;
+    const cell = e.target;
+    
+    if (cell && cell.classList.contains('grid-cell') && !selectedCells.includes(cell)) {
+        // Check if the cell is adjacent to the last cell
+        const lastCell = selectedCells[selectedCells.length - 1];
+        const lastRow = parseInt(lastCell.dataset.row);
+        const lastCol = parseInt(lastCell.dataset.col);
+        const currentRow = parseInt(cell.dataset.row);
+        const currentCol = parseInt(cell.dataset.col);
+        
+        // Calculate the difference in row and column
+        const rowDiff = Math.abs(currentRow - lastRow);
+        const colDiff = Math.abs(currentCol - lastCol);
+        
+        // Only add the cell if it's adjacent (including diagonally) and in line with selection
+        if (rowDiff <= 1 && colDiff <= 1) {
+            if (selectedCells.length >= 2) {
+                const secondLastCell = selectedCells[selectedCells.length - 2];
+                const directionRow = lastRow - parseInt(secondLastCell.dataset.row);
+                const directionCol = lastCol - parseInt(secondLastCell.dataset.col);
+                const newDirectionRow = currentRow - lastRow;
+                const newDirectionCol = currentCol - lastCol;
+                
+                // Check if the new cell maintains the same direction
+                if (directionRow === newDirectionRow && directionCol === newDirectionCol) {
+                    selectedCells.push(cell);
+                    cell.classList.add('selected');
+                }
+            } else {
+                selectedCells.push(cell);
+                cell.classList.add('selected');
+            }
+        }
     }
 }
 
 function endSelection() {
     if (!isGameActive) return;
+    isSelecting = false;
     checkSelectedWord();
 }
 
@@ -501,6 +528,17 @@ document.getElementById('endGame').addEventListener('click', () => endGame(false
 document.getElementById('clearLeaderboard').addEventListener('click', clearLeaderboard);
 document.getElementById('resetHiddenWord').addEventListener('click', resetHiddenWord);
 document.getElementById('startGame').addEventListener('click', initGame);
+
+// Add mouse event listeners for word selection
+const gridContainer = document.querySelector('.grid-container');
+gridContainer.addEventListener('mousedown', startSelection);
+gridContainer.addEventListener('mouseover', continueSelection);
+document.addEventListener('mouseup', endSelection);
+
+// Add touch event listeners for mobile devices
+gridContainer.addEventListener('touchstart', handleTouchStart);
+gridContainer.addEventListener('touchmove', handleTouchMove);
+gridContainer.addEventListener('touchend', handleTouchEnd);
 
 // Initialize only the leaderboard when the page loads
 window.addEventListener('load', () => {
