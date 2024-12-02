@@ -53,6 +53,18 @@ function initGame() {
     const timer = document.getElementById('timer');
     const gameContent = document.getElementById('gameContent');
     const userIdForm = document.getElementById('userIdForm');
+    const wordList = document.getElementById('wordList');
+    
+    // Update word list display
+    if (wordList) {
+        wordList.innerHTML = '';
+        words.forEach(word => {
+            const li = document.createElement('li');
+            li.textContent = word;
+            li.id = `word-${word}`;
+            wordList.appendChild(li);
+        });
+    }
     
     if (endGameBtn) endGameBtn.disabled = false;
     if (timer) timer.style.color = 'black';
@@ -132,19 +144,34 @@ function placeWords() {
 // Place hidden word in the grid
 function placeHiddenWord() {
     let placed = false;
-    const maxAttempts = 50;
+    const maxAttempts = 100; // Increased attempts
     let attempts = 0;
     
     while (!placed && attempts < maxAttempts) {
         const row = Math.floor(Math.random() * gridSize);
         const col = Math.floor(Math.random() * gridSize);
-        const direction = Math.floor(Math.random() * 8); // 8 directions
+        const directions = [
+            [0, 1],   // right
+            [1, 0],   // down
+            [1, 1],   // diagonal right-down
+            [-1, 1],  // diagonal right-up
+            [0, -1],  // left
+            [-1, 0],  // up
+            [-1, -1], // diagonal left-up
+            [1, -1]   // diagonal left-down
+        ];
+        const direction = directions[Math.floor(Math.random() * directions.length)];
         
-        if (canPlaceWord(hiddenWord, row, col, direction)) {
-            placeWord(hiddenWord, row, col, direction);
+        if (canPlaceWordAt(hiddenWord, row, col, direction[0], direction[1])) {
+            placeWordAt(hiddenWord, row, col, direction[0], direction[1]);
+            console.log(`Hidden word LEE placed at row: ${row}, col: ${col}, direction: [${direction}]`);
             placed = true;
         }
         attempts++;
+    }
+    
+    if (!placed) {
+        console.warn('Could not place hidden word after maximum attempts');
     }
 }
 
@@ -180,6 +207,28 @@ function canPlaceWord(word, row, col, direction) {
     return true;
 }
 
+function canPlaceWordAt(word, row, col, dRow, dCol) {
+    const len = word.length;
+    
+    // Check if word fits within grid bounds
+    for (let i = 0; i < len; i++) {
+        const newRow = row + (dRow * i);
+        const newCol = col + (dCol * i);
+        
+        if (newRow < 0 || newRow >= gridSize || newCol < 0 || newCol >= gridSize) {
+            return false;
+        }
+        
+        // Check if cell is empty or matches the letter we want to place
+        const currentCell = grid[newRow][newCol];
+        if (currentCell !== '' && currentCell !== word[i]) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 // Place a word in the grid
 function placeWord(word, row, col, direction) {
     const directions = [
@@ -199,6 +248,21 @@ function placeWord(word, row, col, direction) {
         const newRow = row + (dRow * i);
         const newCol = col + (dCol * i);
         grid[newRow][newCol] = word[i];
+    }
+}
+
+function placeWordAt(word, row, col, dRow, dCol) {
+    const len = word.length;
+    for (let i = 0; i < len; i++) {
+        const newRow = row + (dRow * i);
+        const newCol = col + (dCol * i);
+        grid[newRow][newCol] = word[i];
+        
+        // Update the cell in the DOM
+        const cell = document.querySelector(`.grid-cell[data-row="${newRow}"][data-col="${newCol}"]`);
+        if (cell) {
+            cell.textContent = word[i];
+        }
     }
 }
 
