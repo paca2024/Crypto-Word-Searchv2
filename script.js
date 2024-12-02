@@ -60,8 +60,8 @@ function initGame() {
 
 // Create the grid
 function createGrid() {
-    const gridContainer = document.querySelector('.grid-container');
-    gridContainer.innerHTML = '';
+    const wordGrid = document.getElementById('wordGrid');
+    wordGrid.innerHTML = '';
     
     // Create grid cells
     for (let i = 0; i < gridSize; i++) {
@@ -71,13 +71,13 @@ function createGrid() {
             cell.className = 'grid-cell';
             cell.dataset.row = i;
             cell.dataset.col = j;
-            gridContainer.appendChild(cell);
+            wordGrid.appendChild(cell);
             grid[i][j] = cell;
         }
     }
 
-    // Add event listeners to the grid container
-    gridContainer.addEventListener('mousedown', function(e) {
+    // Add event listeners to the grid
+    wordGrid.addEventListener('mousedown', function(e) {
         e.preventDefault();
         const cell = e.target.closest('.grid-cell');
         if (cell) {
@@ -87,7 +87,7 @@ function createGrid() {
         }
     });
 
-    gridContainer.addEventListener('mouseover', function(e) {
+    wordGrid.addEventListener('mouseover', function(e) {
         if (!isSelecting) return;
         
         const cell = e.target.closest('.grid-cell');
