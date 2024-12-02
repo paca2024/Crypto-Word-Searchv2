@@ -8,6 +8,10 @@ let startTime;
 let gameTimer;
 let gameStartTime;
 
+// Constants
+const COOLDOWN_HOURS = 24;
+const COOLDOWN_MS = COOLDOWN_HOURS * 60 * 60 * 1000;
+
 // Game variables
 const gridSize = 15;
 const grid = [];
@@ -24,50 +28,30 @@ const TIME_BONUSES = {
     240: 250   // Complete under 240 seconds: 250 points
 };
 
-// Cooldown period
-const COOLDOWN_PERIOD = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-
 // Initialize the game
 function initGame() {
-    const userId = document.getElementById('userId').value.trim();
-    if (!userId) {
-        alert('Please enter a user ID');
-        return;
-    }
-
-    if (!canUserPlay(userId)) {
-        alert('You can only play once every 24 hours!');
+    if (!canUserPlay()) {
+        showCooldownMessage();
         return;
     }
 
     // Reset game state
-    foundWords.clear();
-    foundHiddenWord = false;
     isGameActive = true;
+    foundWords = new Set();
+    foundHiddenWord = false;
+    selectedCells = [];
+    isSelecting = false;
+    gameStartTime = new Date();
     
-    // Show game content and hide user form
-    document.getElementById('userIdForm').classList.add('hidden');
-    document.getElementById('gameContent').classList.remove('hidden');
-    
-    // Clear word list
-    const wordList = document.getElementById('wordList');
-    wordList.innerHTML = '';
-    
-    // Display words to find
-    words.forEach(word => {
-        const li = document.createElement('li');
-        li.textContent = word;
-        li.id = `word-${word}`;
-        wordList.appendChild(li);
-    });
-
-    // Create and fill the grid
+    // Clear and create grid
     createGrid();
     placeWords();
+    placeHiddenWord();
     
-    // Start the timer
+    // Update UI
+    document.getElementById('endGameBtn').disabled = false;
+    document.getElementById('timer').style.color = 'black';
     startTimer();
-    gameStartTime = new Date();
 }
 
 // Create the grid
@@ -134,6 +118,25 @@ function placeWords() {
                 cell.textContent = grid[i][j];
             }
         }
+    }
+}
+
+// Place hidden word in the grid
+function placeHiddenWord() {
+    let placed = false;
+    const maxAttempts = 50;
+    let attempts = 0;
+    
+    while (!placed && attempts < maxAttempts) {
+        const row = Math.floor(Math.random() * gridSize);
+        const col = Math.floor(Math.random() * gridSize);
+        const direction = Math.floor(Math.random() * 8); // 8 directions
+        
+        if (canPlaceWord(hiddenWord, row, col, direction)) {
+            placeWord(hiddenWord, row, col, direction);
+            placed = true;
+        }
+        attempts++;
     }
 }
 
@@ -395,42 +398,94 @@ function endGame() {
 
 // Function to save game stats
 function saveGameStats() {
-    const currentTime = new Date();
+    const endTime = new Date();
+    const timeTaken = Math.floor((endTime - gameStartTime) / 1000); // Time in seconds
+    const score = calculateScore(foundWords.size, foundHiddenWord, timeTaken);
+    
+    // Save game stats
     const gameStats = {
-        userId: localStorage.getItem('userId') || 'anonymous',
-        score: foundWords.size,
-        timeTaken: Math.floor((currentTime - gameStartTime) / 1000), // Time in seconds
+        userId: getUserId(),
+        score: score,
+        wordsFound: Array.from(foundWords),
+        totalWords: words.length,
+        timeTaken: timeTaken,
         hiddenWordFound: foundHiddenWord,
-        timestamp: currentTime.toISOString(),
-        foundWords: Array.from(foundWords)
+        timestamp: endTime.toISOString()
     };
+    
+    saveGameStats(gameStats);
+    
+    // Set cooldown
+    localStorage.setItem('lastPlayTime', Date.now().toString());
+    
+    // Show game summary
+    showGameSummary(gameStats);
+}
 
-    // Get existing stats or initialize empty array
+// Calculate score
+function calculateScore(wordsFound, hiddenWordFound, timeTaken) {
+    let score = wordsFound * 100; // Base score per word
+    if (hiddenWordFound) score += 500; // Bonus for hidden word
+    if (wordsFound === words.length) {
+        // Time bonus for finding all words
+        if (timeTaken < 60) score += 1000;
+        else if (timeTaken < 120) score += 500;
+        else if (timeTaken < 180) score += 250;
+    }
+    return score;
+}
+
+// Get user ID
+function getUserId() {
+    let userId = localStorage.getItem('userId');
+    if (!userId) {
+        userId = prompt('Please enter your username:', '');
+        if (userId) localStorage.setItem('userId', userId);
+        else userId = 'anonymous';
+    }
+    return userId;
+}
+
+// Show game summary
+function showGameSummary(stats) {
+    const nextPlayTime = new Date(Date.now() + COOLDOWN_MS);
+    let message = `Game Over!\n\n`;
+    message += `Score: ${stats.score}\n`;
+    message += `Words Found: ${stats.wordsFound.length}/${stats.totalWords}\n`;
+    message += `Time: ${Math.floor(stats.timeTaken / 60)}m ${stats.timeTaken % 60}s\n`;
+    message += `Hidden Word (LEE): ${stats.hiddenWordFound ? 'Found! (+500 points)' : 'Not Found'}\n\n`;
+    message += `Come back at ${nextPlayTime.toLocaleString()} for your next game!\n`;
+    message += `(${COOLDOWN_HOURS} hour cooldown)`;
+    
+    alert(message);
+}
+
+// Save game stats
+function saveGameStats(stats) {
     let gameHistory = JSON.parse(localStorage.getItem('gameHistory') || '[]');
-    gameHistory.push(gameStats);
+    gameHistory.push(stats);
     localStorage.setItem('gameHistory', JSON.stringify(gameHistory));
-
-    // Display game summary
-    alert(`Game Summary:\nScore: ${gameStats.score} words found\nTime: ${gameStats.timeTaken} seconds\nHidden Word Found: ${gameStats.hiddenWordFound}`);
-}
-
-// Get game history
-function getGameHistory() {
-    return JSON.parse(localStorage.getItem('gameHistory') || '[]');
-}
-
-// Clear game history
-function clearGameHistory() {
-    localStorage.removeItem('gameHistory');
 }
 
 // Check if user can play
-function canUserPlay(userId) {
-    const lastPlayed = localStorage.getItem(`lastPlayed_${userId}`);
-    if (!lastPlayed) return true;
+function canUserPlay() {
+    const lastPlayTime = localStorage.getItem('lastPlayTime');
+    if (!lastPlayTime) return true;
     
-    const timeSinceLastPlay = Date.now() - parseInt(lastPlayed);
-    return timeSinceLastPlay >= COOLDOWN_PERIOD;
+    const timeSinceLastPlay = Date.now() - parseInt(lastPlayTime);
+    return timeSinceLastPlay >= COOLDOWN_MS;
+}
+
+// Show cooldown message
+function showCooldownMessage() {
+    const lastPlayTime = parseInt(localStorage.getItem('lastPlayTime'));
+    const nextPlayTime = new Date(lastPlayTime + COOLDOWN_MS);
+    const timeUntilNext = nextPlayTime - Date.now();
+    
+    const hours = Math.floor(timeUntilNext / (60 * 60 * 1000));
+    const minutes = Math.floor((timeUntilNext % (60 * 60 * 1000)) / (60 * 1000));
+    
+    alert(`Please come back in ${hours} hours and ${minutes} minutes for the next game!`);
 }
 
 // Initialize event listeners
