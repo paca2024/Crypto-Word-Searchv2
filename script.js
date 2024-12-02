@@ -179,49 +179,50 @@ function displayWords() {
 // Word selection logic
 function startSelection(e) {
     if (!isGameActive) return;
+    const cell = e.target.closest('.grid-cell');
+    if (!cell) return;
+    
     isSelecting = true;
-    selectedCells = [e.target];
-    e.target.classList.add('selected');
+    selectedCells = [cell];
+    cell.classList.add('selected');
 }
 
 function continueSelection(e) {
     if (!isGameActive || !isSelecting) return;
-    const cell = e.target;
+    const cell = e.target.closest('.grid-cell');
+    if (!cell || selectedCells.includes(cell)) return;
     
-    if (cell && cell.classList.contains('grid-cell') && !selectedCells.includes(cell)) {
-        // Check if the cell is adjacent to the last cell
-        const lastCell = selectedCells[selectedCells.length - 1];
-        const lastRow = parseInt(lastCell.dataset.row);
-        const lastCol = parseInt(lastCell.dataset.col);
-        const currentRow = parseInt(cell.dataset.row);
-        const currentCol = parseInt(cell.dataset.col);
-        
-        // Calculate the difference in row and column
-        const rowDiff = Math.abs(currentRow - lastRow);
-        const colDiff = Math.abs(currentCol - lastCol);
-        
-        // Only add the cell if it's adjacent (including diagonally)
-        if (rowDiff <= 1 && colDiff <= 1) {
-            if (selectedCells.length >= 2) {
-                const firstCell = selectedCells[0];
-                const firstRow = parseInt(firstCell.dataset.row);
-                const firstCol = parseInt(firstCell.dataset.col);
-                
-                // Calculate overall direction from first to current cell
-                const totalRowDiff = currentRow - firstRow;
-                const totalColDiff = currentCol - firstCol;
-                
-                // Allow selection if it's roughly in the same direction
-                // This makes diagonal selection more forgiving
-                if (Math.abs(totalRowDiff) <= Math.abs(totalColDiff) + 1 && 
-                    Math.abs(totalColDiff) <= Math.abs(totalRowDiff) + 1) {
-                    selectedCells.push(cell);
-                    cell.classList.add('selected');
-                }
-            } else {
+    // Check if the cell is adjacent to the last cell
+    const lastCell = selectedCells[selectedCells.length - 1];
+    const lastRow = parseInt(lastCell.dataset.row);
+    const lastCol = parseInt(lastCell.dataset.col);
+    const currentRow = parseInt(cell.dataset.row);
+    const currentCol = parseInt(cell.dataset.col);
+    
+    // Calculate the difference in row and column
+    const rowDiff = Math.abs(currentRow - lastRow);
+    const colDiff = Math.abs(currentCol - lastCol);
+    
+    // Only add the cell if it's adjacent (including diagonally)
+    if (rowDiff <= 1 && colDiff <= 1) {
+        if (selectedCells.length >= 2) {
+            const firstCell = selectedCells[0];
+            const firstRow = parseInt(firstCell.dataset.row);
+            const firstCol = parseInt(firstCell.dataset.col);
+            
+            // Calculate overall direction from first to current cell
+            const totalRowDiff = currentRow - firstRow;
+            const totalColDiff = currentCol - firstCol;
+            
+            // Allow selection if it's roughly in the same direction
+            if (Math.abs(totalRowDiff) <= Math.abs(totalColDiff) + 1 && 
+                Math.abs(totalColDiff) <= Math.abs(totalRowDiff) + 1) {
                 selectedCells.push(cell);
                 cell.classList.add('selected');
             }
+        } else {
+            selectedCells.push(cell);
+            cell.classList.add('selected');
         }
     }
 }
@@ -535,7 +536,10 @@ document.getElementById('startGame').addEventListener('click', initGame);
 
 // Add mouse event listeners for word selection
 const gridContainer = document.querySelector('.grid-container');
-gridContainer.addEventListener('mousedown', startSelection);
+gridContainer.addEventListener('mousedown', function(e) {
+    e.preventDefault(); // Prevent text selection
+    startSelection(e);
+});
 gridContainer.addEventListener('mouseover', continueSelection);
 document.addEventListener('mouseup', endSelection);
 
