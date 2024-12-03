@@ -457,89 +457,122 @@ function handleCellClick(e) {
     const cell = e.target;
     if (!cell.classList.contains('grid-cell')) return;
     
+    // Toggle cell selection
     if (selectedCells.includes(cell)) {
-        // Deselect cell but keep found status
         cell.classList.remove('selected');
         selectedCells = selectedCells.filter(c => c !== cell);
+        updateSelectionGuide();
     } else {
-        // Allow selecting even if cell is part of a found word
-        const row = parseInt(cell.dataset.row);
-        const col = parseInt(cell.dataset.col);
-        
-        if (selectedCells.length === 0 || isAdjacent(cell, selectedCells[selectedCells.length - 1])) {
+        // Add cell to selection
+        if (selectedCells.length === 0 || isValidSelection(selectedCells[selectedCells.length - 1], cell)) {
             cell.classList.add('selected');
             selectedCells.push(cell);
+            updateSelectionGuide();
             
-            // Check for completed word
+            // Check if we have a valid word
             const word = selectedCells.map(c => c.textContent).join('');
             const reverseWord = word.split('').reverse().join('');
             
-            if (handleWordCompletion(word, selectedCells) || handleWordCompletion(reverseWord, selectedCells)) {
-                selectedCells = [];
+            if (words.includes(word) || words.includes(reverseWord)) {
+                const validWord = words.includes(word) ? word : reverseWord;
+                
+                if (!foundWords.has(validWord)) {
+                    // Word found!
+                    foundWords.add(validWord);
+                    showSuccessMessage(validWord);
+                    markFoundWord(validWord);
+                    checkGameCompletion();
+                }
+                clearSelection();
             } else if (word === hiddenWord || reverseWord === hiddenWord) {
-                // Handle hidden word
                 foundHiddenWord = true;
-                selectedCells.forEach(c => {
-                    c.classList.remove('selected');
-                    c.classList.add('found', 'hidden-word');
-                    // Keep hidden word cells clickable too
-                    c.style.pointerEvents = 'auto';
-                });
-                alert('Congratulations! You found the hidden word LEE!');
-                selectedCells = [];
+                markHiddenWordFound();
+                clearSelection();
             }
         }
     }
 }
 
-function isAdjacent(cell1, cell2) {
+function isValidSelection(cell1, cell2) {
     const row1 = parseInt(cell1.dataset.row);
     const col1 = parseInt(cell1.dataset.col);
     const row2 = parseInt(cell2.dataset.row);
     const col2 = parseInt(cell2.dataset.col);
     
+    // Increased tolerance for diagonal selections
     const rowDiff = Math.abs(row1 - row2);
     const colDiff = Math.abs(col1 - col2);
     
-    return (rowDiff <= 1 && colDiff <= 1) && (rowDiff + colDiff <= 2);
+    // Allow slightly more flexible diagonal movement
+    return (rowDiff <= 2 && colDiff <= 2);
 }
 
-function handleWordCompletion(word, cells) {
-    // Check if word is valid and not already found
-    if (words.includes(word) && !foundWords.has(word)) {
-        foundWords.add(word);
+function updateSelectionGuide() {
+    // Remove previous guides
+    document.querySelectorAll('.selection-guide').forEach(cell => {
+        cell.classList.remove('selection-guide');
+    });
+    
+    if (selectedCells.length > 0) {
+        const lastCell = selectedCells[selectedCells.length - 1];
+        const row = parseInt(lastCell.dataset.row);
+        const col = parseInt(lastCell.dataset.col);
         
-        // Highlight cells but keep them clickable
-        cells.forEach(cell => {
-            cell.classList.remove('selected');
-            cell.classList.add('found');
-            // Remove any click-blocking styles
-            cell.style.pointerEvents = 'auto';
-        });
-        
-        // Show success message
-        const message = document.createElement('div');
-        message.className = 'word-found-message';
-        message.textContent = `Found: ${word}!`;
-        document.body.appendChild(message);
-        
-        // Remove message after animation
-        setTimeout(() => message.remove(), 2000);
-        
-        // Mark word in list
-        const wordElement = document.getElementById(`word-${word}`);
-        if (wordElement) {
-            wordElement.classList.add('found');
-            const checkmark = document.createElement('span');
-            checkmark.textContent = ' ✓';
-            checkmark.className = 'checkmark';
-            wordElement.appendChild(checkmark);
+        // Highlight possible next cells
+        for (let i = -2; i <= 2; i++) {
+            for (let j = -2; j <= 2; j++) {
+                if (i === 0 && j === 0) continue;
+                
+                const nextCell = document.querySelector(
+                    `.grid-cell[data-row="${row + i}"][data-col="${col + j}"]`
+                );
+                
+                if (nextCell && !selectedCells.includes(nextCell)) {
+                    nextCell.classList.add('selection-guide');
+                }
+            }
         }
-        
-        checkGameCompletion();
-        return true;
     }
-    return false;
+}
+
+function showSuccessMessage(word) {
+    const message = document.createElement('div');
+    message.className = 'word-found-message';
+    message.textContent = `Found: ${word}!`;
+    document.body.appendChild(message);
+    setTimeout(() => message.remove(), 2000);
+}
+
+function markFoundWord(word) {
+    // Mark cells as found
+    selectedCells.forEach(cell => {
+        cell.classList.remove('selected');
+        cell.classList.add('found');
+    });
+    
+    // Mark word in list
+    const wordElement = document.getElementById(`word-${word}`);
+    if (wordElement) {
+        wordElement.classList.add('found');
+        const checkmark = document.createElement('span');
+        checkmark.textContent = ' ✓';
+        checkmark.className = 'checkmark';
+        wordElement.appendChild(checkmark);
+    }
+}
+
+function markHiddenWordFound() {
+    selectedCells.forEach(cell => {
+        cell.classList.remove('selected');
+        cell.classList.add('found', 'hidden-word');
+    });
+    alert('Congratulations! You found the hidden word LEE!');
+}
+
+function clearSelection() {
+    selectedCells.forEach(cell => cell.classList.remove('selected'));
+    selectedCells = [];
+    updateSelectionGuide();
 }
 
 // Timer functions
@@ -680,4 +713,54 @@ function saveGameStats(stats) {
     let gameHistory = JSON.parse(localStorage.getItem('gameHistory') || '[]');
     gameHistory.push(stats);
     localStorage.setItem('gameHistory', JSON.stringify(gameHistory));
+}
+
+function isAdjacent(cell1, cell2) {
+    const row1 = parseInt(cell1.dataset.row);
+    const col1 = parseInt(cell1.dataset.col);
+    const row2 = parseInt(cell2.dataset.row);
+    const col2 = parseInt(cell2.dataset.col);
+    
+    const rowDiff = Math.abs(row1 - row2);
+    const colDiff = Math.abs(col1 - col2);
+    
+    return (rowDiff <= 1 && colDiff <= 1) && (rowDiff + colDiff <= 2);
+}
+
+function handleWordCompletion(word, cells) {
+    // Check if word is valid and not already found
+    if (words.includes(word) && !foundWords.has(word)) {
+        foundWords.add(word);
+        
+        // Highlight cells but keep them clickable
+        cells.forEach(cell => {
+            cell.classList.remove('selected');
+            cell.classList.add('found');
+            // Remove any click-blocking styles
+            cell.style.pointerEvents = 'auto';
+        });
+        
+        // Show success message
+        const message = document.createElement('div');
+        message.className = 'word-found-message';
+        message.textContent = `Found: ${word}!`;
+        document.body.appendChild(message);
+        
+        // Remove message after animation
+        setTimeout(() => message.remove(), 2000);
+        
+        // Mark word in list
+        const wordElement = document.getElementById(`word-${word}`);
+        if (wordElement) {
+            wordElement.classList.add('found');
+            const checkmark = document.createElement('span');
+            checkmark.textContent = ' ✓';
+            checkmark.className = 'checkmark';
+            wordElement.appendChild(checkmark);
+        }
+        
+        checkGameCompletion();
+        return true;
+    }
+    return false;
 }
