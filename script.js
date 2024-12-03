@@ -1,6 +1,6 @@
 // Crypto-related words for the game
 const words = ['BITCOIN', 'ETHEREUM', 'BLOCKCHAIN', 'MINING', 'WALLET', 'DEFI', 'TOKEN', 'CRYPTO', 'LEDGER', 'NFT'];
-const hiddenWord = 'LEE';
+const hiddenWord = 'FINANCE';
 let foundWords = new Set();
 let foundHiddenWord = false;
 let isGameActive = false;
@@ -178,7 +178,7 @@ function placeHiddenWord() {
             for (let dir of directions) {
                 if (canPlaceWordAt(hiddenWord, row, col, dir[0], dir[1])) {
                     placeWordAt(hiddenWord, row, col, dir[0], dir[1]);
-                    console.log(`Hidden word LEE placed at row: ${row}, col: ${col}, direction: [${dir}]`);
+                    console.log(`Hidden word FINANCE placed at row: ${row}, col: ${col}, direction: [${dir}]`);
                     placed = true;
                     break;
                 }
@@ -194,7 +194,7 @@ function placeHiddenWord() {
             for (let col = 0; col < gridSize - hiddenWord.length; col++) {
                 if (canPlaceWordAt(hiddenWord, row, col, 0, 1)) { // Try horizontal
                     placeWordAt(hiddenWord, row, col, 0, 1);
-                    console.log(`Emergency: Hidden word LEE placed horizontally at row: ${row}, col: ${col}`);
+                    console.log(`Emergency: Hidden word FINANCE placed horizontally at row: ${row}, col: ${col}`);
                     placed = true;
                     break;
                 }
@@ -375,7 +375,7 @@ function endSelection() {
             cell.classList.remove('selected');
             cell.classList.add('found', 'hidden-word');
         });
-        alert('Congratulations! You found the hidden word LEE!');
+        alert('Congratulations! You found the hidden word FINANCE!');
         selectedCells = [];
     }
 }
@@ -477,7 +477,6 @@ function handleCellClick(e) {
                 const validWord = words.includes(word) ? word : reverseWord;
                 
                 if (!foundWords.has(validWord)) {
-                    // Word found!
                     foundWords.add(validWord);
                     showSuccessMessage(validWord);
                     markFoundWord(validWord);
@@ -566,7 +565,7 @@ function markHiddenWordFound() {
         cell.classList.remove('selected');
         cell.classList.add('found', 'hidden-word');
     });
-    alert('Congratulations! You found the hidden word LEE!');
+    alert('Congratulations! You found the hidden word FINANCE!');
 }
 
 function clearSelection() {
@@ -626,7 +625,7 @@ function endGame() {
     message += `Score: ${score}\n`;
     message += `Words Found: ${gameStats.wordsFound.length}/${words.length}\n`;
     message += `Time: ${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s\n`;
-    message += `Hidden Word (LEE): ${foundHiddenWord ? 'Found! (+500 points)' : 'Not Found'}\n\n`;
+    message += `Hidden Word (FINANCE): ${foundHiddenWord ? 'Found! (+500 points)' : 'Not Found'}\n\n`;
     message += `Come back at ${nextPlayTime.toLocaleString()} for your next game!\n`;
     message += `(${COOLDOWN_HOURS} hour cooldown)`;
     
