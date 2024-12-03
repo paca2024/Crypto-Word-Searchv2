@@ -367,23 +367,17 @@ function endSelection() {
     const word = selectedCells.map(cell => cell.textContent).join('');
     const reverseWord = word.split('').reverse().join('');
     
-    if (words.includes(word) && !foundWords.has(word)) {
-        foundWords.add(word);
-        markWordAsFound(word);
-        // Keep the cells highlighted for found words
-        selectedCells.forEach(cell => cell.classList.add('found'));
-        checkGameCompletion();
+    if (handleWordCompletion(word, selectedCells) || handleWordCompletion(reverseWord, selectedCells)) {
+        selectedCells = [];
     } else if (word === hiddenWord || reverseWord === hiddenWord) {
         foundHiddenWord = true;
-        // Keep the cells highlighted for hidden word
-        selectedCells.forEach(cell => cell.classList.add('found'));
+        selectedCells.forEach(cell => {
+            cell.classList.remove('selected');
+            cell.classList.add('found', 'hidden-word');
+        });
         alert('Congratulations! You found the hidden word LEE!');
-    } else {
-        // Only remove highlighting if the word is not valid
-        selectedCells.forEach(cell => cell.classList.remove('selected'));
+        selectedCells = [];
     }
-    
-    selectedCells = [];
 }
 
 // Touch event handlers
@@ -457,72 +451,91 @@ function handleTouchEnd() {
     endSelection();
 }
 
-// Handle single cell clicks
 function handleCellClick(e) {
     if (!isGameActive) return;
     
     const cell = e.target;
     if (!cell.classList.contains('grid-cell')) return;
     
-    // Toggle selection of clicked cell
     if (selectedCells.includes(cell)) {
-        // Deselect if already selected
+        // Deselect cell
         cell.classList.remove('selected');
         selectedCells = selectedCells.filter(c => c !== cell);
     } else {
-        // Add to selection if adjacent to last selected cell or first selection
+        // Check if cell is adjacent to last selected cell
         const row = parseInt(cell.dataset.row);
         const col = parseInt(cell.dataset.col);
         
-        if (selectedCells.length === 0) {
-            // First cell selection
+        if (selectedCells.length === 0 || isAdjacent(cell, selectedCells[selectedCells.length - 1])) {
             cell.classList.add('selected');
             selectedCells.push(cell);
-        } else {
-            // Check if adjacent to last selected cell
-            const lastCell = selectedCells[selectedCells.length - 1];
-            const lastRow = parseInt(lastCell.dataset.row);
-            const lastCol = parseInt(lastCell.dataset.col);
             
-            const rowDiff = Math.abs(row - lastRow);
-            const colDiff = Math.abs(col - lastCol);
+            // Check for completed word
+            const word = selectedCells.map(c => c.textContent).join('');
+            const reverseWord = word.split('').reverse().join('');
             
-            if ((rowDiff <= 1 && colDiff <= 1) && (rowDiff + colDiff <= 2)) {
-                cell.classList.add('selected');
-                selectedCells.push(cell);
-                
-                // Check if word is complete
-                const word = selectedCells.map(cell => cell.textContent).join('');
-                const reverseWord = word.split('').reverse().join('');
-                
-                if (words.includes(word) || words.includes(reverseWord) || 
-                    word === hiddenWord || reverseWord === hiddenWord) {
-                    // Valid word found
-                    if (words.includes(word) && !foundWords.has(word)) {
-                        foundWords.add(word);
-                        markWordAsFound(word);
-                        selectedCells.forEach(cell => cell.classList.add('found'));
-                        checkGameCompletion();
-                    } else if (word === hiddenWord || reverseWord === hiddenWord) {
-                        foundHiddenWord = true;
-                        selectedCells.forEach(cell => cell.classList.add('found'));
-                        alert('Congratulations! You found the hidden word LEE!');
-                    }
-                    // Clear selection after finding word
-                    selectedCells.forEach(cell => cell.classList.remove('selected'));
-                    selectedCells = [];
-                }
+            if (handleWordCompletion(word, selectedCells) || handleWordCompletion(reverseWord, selectedCells)) {
+                selectedCells = [];
+            } else if (word === hiddenWord || reverseWord === hiddenWord) {
+                // Handle hidden word
+                foundHiddenWord = true;
+                selectedCells.forEach(c => {
+                    c.classList.remove('selected');
+                    c.classList.add('found', 'hidden-word');
+                });
+                alert('Congratulations! You found the hidden word LEE!');
+                selectedCells = [];
             }
         }
     }
 }
 
-// Mark a found word in the list
-function markWordAsFound(word) {
-    const wordElement = document.getElementById(`word-${word}`);
-    if (wordElement) {
-        wordElement.classList.add('found');
+function isAdjacent(cell1, cell2) {
+    const row1 = parseInt(cell1.dataset.row);
+    const col1 = parseInt(cell1.dataset.col);
+    const row2 = parseInt(cell2.dataset.row);
+    const col2 = parseInt(cell2.dataset.col);
+    
+    const rowDiff = Math.abs(row1 - row2);
+    const colDiff = Math.abs(col1 - col2);
+    
+    return (rowDiff <= 1 && colDiff <= 1) && (rowDiff + colDiff <= 2);
+}
+
+function handleWordCompletion(word, cells) {
+    // Check if word is valid and not already found
+    if (words.includes(word) && !foundWords.has(word)) {
+        foundWords.add(word);
+        
+        // Highlight cells
+        cells.forEach(cell => {
+            cell.classList.remove('selected');
+            cell.classList.add('found');
+        });
+        
+        // Show success message
+        const message = document.createElement('div');
+        message.className = 'word-found-message';
+        message.textContent = `Found: ${word}!`;
+        document.body.appendChild(message);
+        
+        // Remove message after animation
+        setTimeout(() => message.remove(), 2000);
+        
+        // Mark word in list
+        const wordElement = document.getElementById(`word-${word}`);
+        if (wordElement) {
+            wordElement.classList.add('found');
+            const checkmark = document.createElement('span');
+            checkmark.textContent = ' ✓';
+            checkmark.className = 'checkmark';
+            wordElement.appendChild(checkmark);
+        }
+        
+        checkGameCompletion();
+        return true;
     }
+    return false;
 }
 
 // Timer functions

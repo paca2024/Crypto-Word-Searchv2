@@ -77,6 +77,12 @@ h1, h2, h3 {
     color: var(--black);
 }
 
+.found {
+    background-color: #90EE90;
+    color: #006400;
+    transition: all 0.3s ease;
+}
+
 .word-list {
     width: min(90vw, 450px);
     margin: 0 auto;
@@ -103,6 +109,35 @@ h1, h2, h3 {
 .word-list li.found {
     text-decoration: line-through;
     color: var(--dark-green);
+}
+
+.word-found-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #4CAF50;
+    color: white;
+    padding: 15px 30px;
+    border-radius: 5px;
+    animation: fadeOut 2s forwards;
+    z-index: 1000;
+}
+
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.checkmark {
+    color: #4CAF50;
+    margin-left: 5px;
+}
+
+.hidden-word {
+    background-color: #FFD700;
+    color: #B8860B;
 }
 
 button {
