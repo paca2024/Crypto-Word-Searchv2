@@ -91,6 +91,7 @@ function createGrid() {
             cell.className = 'grid-cell';
             cell.dataset.row = i;
             cell.dataset.col = j;
+            cell.addEventListener('click', handleCellClick);
             gridContainer.appendChild(cell);
         }
     }
@@ -454,6 +455,66 @@ function handleTouchMove(e) {
 function handleTouchEnd() {
     if (!isGameActive) return;
     endSelection();
+}
+
+// Handle single cell clicks
+function handleCellClick(e) {
+    if (!isGameActive) return;
+    
+    const cell = e.target;
+    if (!cell.classList.contains('grid-cell')) return;
+    
+    // Toggle selection of clicked cell
+    if (selectedCells.includes(cell)) {
+        // Deselect if already selected
+        cell.classList.remove('selected');
+        selectedCells = selectedCells.filter(c => c !== cell);
+    } else {
+        // Add to selection if adjacent to last selected cell or first selection
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
+        
+        if (selectedCells.length === 0) {
+            // First cell selection
+            cell.classList.add('selected');
+            selectedCells.push(cell);
+        } else {
+            // Check if adjacent to last selected cell
+            const lastCell = selectedCells[selectedCells.length - 1];
+            const lastRow = parseInt(lastCell.dataset.row);
+            const lastCol = parseInt(lastCell.dataset.col);
+            
+            const rowDiff = Math.abs(row - lastRow);
+            const colDiff = Math.abs(col - lastCol);
+            
+            if ((rowDiff <= 1 && colDiff <= 1) && (rowDiff + colDiff <= 2)) {
+                cell.classList.add('selected');
+                selectedCells.push(cell);
+                
+                // Check if word is complete
+                const word = selectedCells.map(cell => cell.textContent).join('');
+                const reverseWord = word.split('').reverse().join('');
+                
+                if (words.includes(word) || words.includes(reverseWord) || 
+                    word === hiddenWord || reverseWord === hiddenWord) {
+                    // Valid word found
+                    if (words.includes(word) && !foundWords.has(word)) {
+                        foundWords.add(word);
+                        markWordAsFound(word);
+                        selectedCells.forEach(cell => cell.classList.add('found'));
+                        checkGameCompletion();
+                    } else if (word === hiddenWord || reverseWord === hiddenWord) {
+                        foundHiddenWord = true;
+                        selectedCells.forEach(cell => cell.classList.add('found'));
+                        alert('Congratulations! You found the hidden word LEE!');
+                    }
+                    // Clear selection after finding word
+                    selectedCells.forEach(cell => cell.classList.remove('selected'));
+                    selectedCells = [];
+                }
+            }
+        }
+    }
 }
 
 // Mark a found word in the list
