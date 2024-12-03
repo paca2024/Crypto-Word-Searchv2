@@ -7,33 +7,39 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div id="signInOverlay" class="overlay">
+        <div class="sign-in-box">
+            <h2>Welcome to Crypto Word Search</h2>
+            <div class="input-group">
+                <label for="tgUsername">Enter your Telegram username:</label>
+                <input type="text" id="tgUsername" placeholder="@username" required>
+                <button id="startGameBtn">Start Game</button>
+            </div>
+        </div>
+    </div>
     <div class="container">
-        <h1>Crypto Word Search</h1>
-        
-        <div class="game-header">
-            <div id="timer">00:00</div>
+        <header class="game-header">
+            <h1>Crypto Word Search</h1>
+        </header>
+
+        <div class="game-controls">
+            <div class="game-stats">
+                <div class="timer">Time: <span id="timer">00:00</span></div>
+                <div class="score">Score: <span id="score">0</span></div>
+            </div>
             <div class="game-buttons">
-                <button id="newGameBtn">New Game</button>
                 <button id="endGameBtn">End Game</button>
             </div>
         </div>
 
-        <div id="gameBoard">
-            <div id="grid" class="grid"></div>
-        </div>
-
-        <div id="gameSummary" class="game-summary hidden">
-            <h2>Game Summary</h2>
-            <p>User ID: <span id="userId"></span></p>
-            <p>Points: <span id="finalScore"></span></p>
-            <p>Hidden Word Found: <span id="hiddenWordStatus"></span></p>
-            <button id="closeSummaryBtn">Close</button>
-        </div>
-
-        <div class="word-list">
-            <h2>Find These Words:</h2>
-            <ul id="wordList"></ul>
-        </div>
+        <main class="game-area">
+            <div id="gameBoard" class="game-board"></div>
+            
+            <aside class="word-list">
+                <h2>Find These Words:</h2>
+                <ul id="wordList"></ul>
+            </aside>
+        </main>
     </div>
     <script src="script.js"></script>
 </body>
