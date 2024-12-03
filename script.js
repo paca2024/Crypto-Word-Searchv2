@@ -458,11 +458,11 @@ function handleCellClick(e) {
     if (!cell.classList.contains('grid-cell')) return;
     
     if (selectedCells.includes(cell)) {
-        // Deselect cell
+        // Deselect cell but keep found status
         cell.classList.remove('selected');
         selectedCells = selectedCells.filter(c => c !== cell);
     } else {
-        // Check if cell is adjacent to last selected cell
+        // Allow selecting even if cell is part of a found word
         const row = parseInt(cell.dataset.row);
         const col = parseInt(cell.dataset.col);
         
@@ -482,6 +482,8 @@ function handleCellClick(e) {
                 selectedCells.forEach(c => {
                     c.classList.remove('selected');
                     c.classList.add('found', 'hidden-word');
+                    // Keep hidden word cells clickable too
+                    c.style.pointerEvents = 'auto';
                 });
                 alert('Congratulations! You found the hidden word LEE!');
                 selectedCells = [];
@@ -507,10 +509,12 @@ function handleWordCompletion(word, cells) {
     if (words.includes(word) && !foundWords.has(word)) {
         foundWords.add(word);
         
-        // Highlight cells
+        // Highlight cells but keep them clickable
         cells.forEach(cell => {
             cell.classList.remove('selected');
             cell.classList.add('found');
+            // Remove any click-blocking styles
+            cell.style.pointerEvents = 'auto';
         });
         
         // Show success message
